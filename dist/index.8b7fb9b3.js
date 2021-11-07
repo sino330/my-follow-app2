@@ -488,7 +488,22 @@ const INITIAL_STATE = {
         }, 
     ]
 };
-const accountItem = (account)=>{
+const actions = {
+    toggleFollow (state, id) {
+        const accounts = state.accounts.map((f)=>{
+            if (f.id === id) return {
+                ...f,
+                isFollow: !f.isFollow
+            };
+            else return f;
+        });
+        return {
+            ...state,
+            accounts
+        };
+    }
+};
+const accountItem = (account, action)=>{
     return _createElementDefault.default("div", {
         attrs: {
         },
@@ -528,7 +543,7 @@ const accountItem = (account)=>{
                                 attrs: {
                                     type: "button",
                                     class: `followBtn ${account.isFollow ? "isFollow" : ""}`,
-                                    onclick: ()=>alert(account.name)
+                                    onclick: ()=>action.toggleFollow(account.id)
                                 },
                                 children: [
                                     account.isFollow ? "フォロー中" : "フォローする"
@@ -549,7 +564,7 @@ const accountItem = (account)=>{
         ]
     });
 };
-const view = (props)=>_createElementDefault.default("ul", {
+const view = (props, action)=>_createElementDefault.default("ul", {
         attrs: {
             class: "accountList"
         },
@@ -559,16 +574,20 @@ const view = (props)=>_createElementDefault.default("ul", {
                     class: "accountList__item"
                 },
                 children: [
-                    accountItem(e)
+                    accountItem(e, action)
                 ]
             });
         })
     })
 ;
+// const $app = render(view(INITIAL_STATE));
+// const el = document.getElementById("app");
+// el.appendChild($app);
 _app.app({
     root: "#app",
     initialState: INITIAL_STATE,
-    view
+    view,
+    actions
 });
 
 },{"./vdom/createElement":"kULv9","./vdom/app":"em4Q0","@parcel/transformer-js/src/esmodule-helpers.js":"ciiiV"}],"kULv9":[function(require,module,exports) {
@@ -621,10 +640,31 @@ parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "app", ()=>app
 );
 var _render = require("./render");
-const app = ({ root , initialState , view  })=>{
+const app = ({ root , initialState , view , actions  })=>{
     const $el = document.querySelector(root);
-    let newNode = view(initialState);
+    // let newNode = view(initialState);
+    let newNode;
+    let state = initialState;
+    const dispatcher = function(actions) {
+        const dispathedActions = {
+        };
+        for(const key in actions){
+            const action = actions[key];
+            dispathedActions[key] = (option)=>{
+                setState(action(state, option));
+                renderDOM();
+            };
+        }
+        return dispathedActions;
+    };
+    const setState = function(newState) {
+        if (state !== newState) state = newState;
+    };
+    const updateNode = function() {
+        newNode = view(state, dispatcher(actions));
+    };
     const renderDOM = function() {
+        updateNode();
         $el.appendChild(_render.render(newNode));
     };
     renderDOM();
@@ -643,6 +683,9 @@ const setAttrs = (target, attrs)=>{
 function renderElement({ tagName , attrs , children  }) {
     const $el = document.createElement(tagName);
     setAttrs($el, attrs);
+    // for (const [k, v] of Object.entries(attrs)) {
+    //   $el.setAttribute(k, v);
+    // }
     for (const child of children)$el.appendChild(render(child));
     return $el;
 }
