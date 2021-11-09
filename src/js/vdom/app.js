@@ -1,10 +1,12 @@
 import { render } from "./render";
+import { patch } from "./patch";
+
 
 export const app = ({ root, initialState, view, actions }) => {
   const $el = document.querySelector(root);
   // let newNode = view(initialState);
-  let newNode
-
+  let newNode;
+  let oldNode;
   let state = initialState;
 
   const dispatcher = function (actions) {
@@ -27,14 +29,15 @@ export const app = ({ root, initialState, view, actions }) => {
     }
   };
 
-  const updateNode=function(){
-    newNode=view(state,dispatcher(actions));
-  }
+  const updateNode = function () {
+    newNode = view(state, dispatcher(actions));
+  };
 
   const renderDOM = function () {
     updateNode();
-
-    $el.appendChild(render(newNode));
+    // $el.appendChild(render(newNode));
+    patch($el, newNode, oldNode);
+    oldNode = newNode;
   };
 
   renderDOM();

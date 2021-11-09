@@ -640,10 +640,12 @@ parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "app", ()=>app
 );
 var _render = require("./render");
+var _patch = require("./patch");
 const app = ({ root , initialState , view , actions  })=>{
     const $el = document.querySelector(root);
     // let newNode = view(initialState);
     let newNode;
+    let oldNode;
     let state = initialState;
     const dispatcher = function(actions) {
         const dispathedActions = {
@@ -665,12 +667,14 @@ const app = ({ root , initialState , view , actions  })=>{
     };
     const renderDOM = function() {
         updateNode();
-        $el.appendChild(_render.render(newNode));
+        // $el.appendChild(render(newNode));
+        _patch.patch($el, newNode, oldNode);
+        oldNode = newNode;
     };
     renderDOM();
 };
 
-},{"./render":"4NTM9","@parcel/transformer-js/src/esmodule-helpers.js":"ciiiV"}],"4NTM9":[function(require,module,exports) {
+},{"./render":"4NTM9","@parcel/transformer-js/src/esmodule-helpers.js":"ciiiV","./patch":"cufTi"}],"4NTM9":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "render", ()=>render
@@ -699,10 +703,64 @@ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "isEventAttr", ()=>isEventAttr
 );
+parcelHelpers.export(exports, "isVNode", ()=>isVNode
+);
+parcelHelpers.export(exports, "isTextChild", ()=>isTextChild
+);
 const isEventAttr = (attr)=>{
     return /^on/.test(attr);
 };
+const isVNode = (node)=>{
+    return typeof node !== "string";
+};
+const isTextChild = (node)=>{
+    return node && node.children && node.children.length > 0 && typeof node.children[0] === "string";
+};
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"ciiiV"}]},["cSv3F","3auaO"], "3auaO", "parcelRequire222e")
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"ciiiV"}],"cufTi":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "patch", ()=>patch
+);
+var _render = require("./render");
+var _utils = require("./utils");
+const hasChanged = (oldNode, newNode)=>{
+    if (typeof oldNode !== typeof newNode) return "TYPE";
+    if (_utils.isTextChild(oldNode) && _utils.isTextChild(newNode)) {
+        if (oldNode.children[0] !== newNode.children[0]) return "TEXT";
+    }
+    if (_utils.isVNode(oldNode) && _utils.isVNode(newNode)) {
+        if (oldNode.tagName !== newNode.tagName) return "NODE";
+        if (JSON.stringify(oldNode.attrs) !== JSON.stringify(newNode.attrs)) return "ATTR";
+    }
+    return "NONE";
+};
+const updateAttrs = (target, oldAttrs, newAttrs)=>{
+    for(const attr in oldAttrs)if (!_utils.isEventAttr(attr)) target.removeAttribute(attr);
+    for(const attr1 in newAttrs)if (!_utils.isEventAttr(attr1)) target.setAttribute(attr1, newAttrs[attr1]);
+};
+const patch = (parent, newNode, oldNode, index = 0)=>{
+    if (!oldNode) parent.appendChild(_render.render(newNode));
+    const childNode = parent.childNodes[index];
+    if (!newNode) parent.removeChild(childNode);
+    const type = hasChanged(oldNode, newNode);
+    switch(type){
+        case "TYPE":
+        case "TEXT":
+        case "NODE":
+            parent.replaceChild(_render.render(newNode), childNode);
+            return;
+        case "ATTR":
+            updateAttrs(childNode, oldNode.attrs, newNode.attrs);
+            return;
+    }
+    if (newNode.tagName) {
+        const newLength = newNode.children.length;
+        const oldLength = oldNode.children.length;
+        for(let i = 0; i < newLength || i < oldLength; i++)patch(childNode, newNode.children[i], oldNode.children[i], i);
+    }
+};
+
+},{"./render":"4NTM9","./utils":"gBwRn","@parcel/transformer-js/src/esmodule-helpers.js":"ciiiV"}]},["cSv3F","3auaO"], "3auaO", "parcelRequire222e")
 
 //# sourceMappingURL=index.8b7fb9b3.js.map
